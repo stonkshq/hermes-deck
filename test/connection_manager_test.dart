@@ -474,9 +474,14 @@ void main() {
         final client = ApiClient(
           baseUrl: 'https://hermes.example',
           pathPrefix: '/hermes',
-          apiKey: 'prefixed-test-key',
+          apiKey: 'prefi...ey',
           httpClient: MockClient((request) async {
-            expect(request.url.path, '/hermes/health');
+            // Both the bare and /api-prefixed health endpoints are probed
+            // before the check gives up.
+            expect(
+              request.url.path,
+              anyOf('/hermes/health', '/hermes/api/health'),
+            );
             return http.Response('not found', 404);
           }),
         );
@@ -485,7 +490,7 @@ void main() {
 
         expect(result.isHealthy, isFalse);
         expect(result.statusCode, 404);
-        expect(result.endpoint.path, '/hermes/health');
+        expect(result.endpoint.path, '/hermes/api/health');
         expect(
           result.userMessage(apiKeyProvided: true),
           allOf(contains('HTTP 404'), contains('reverse-proxy routes')),

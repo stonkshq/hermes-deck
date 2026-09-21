@@ -721,14 +721,24 @@ class ApiClient {
 
   Future<ApiHealthCheckResult> checkHealth() async {
     final healthEndpoint = Uri.parse('$baseUrl/health');
+    // nginx-fronted deployments commonly expose the API under /api/ and may
+    // not route a bare /health at all (ours 302-redirects it), so accept
+    // either location before giving up.
+    final altHealthEndpoint = Uri.parse('$baseUrl/api/health');
     var activeEndpoint = healthEndpoint;
     try {
-      final health = await _http
+      var health = await _http
           .get(healthEndpoint, headers: _headers)
           .timeout(const Duration(seconds: 5));
       if (health.statusCode != 200) {
+        activeEndpoint = altHealthEndpoint;
+        health = await _http
+            .get(altHealthEndpoint, headers: _headers)
+            .timeout(const Duration(seconds: 5));
+      }
+      if (health.statusCode != 200) {
         return ApiHealthCheckResult.httpFailure(
-          healthEndpoint,
+          altHealthEndpoint,
           health.statusCode,
         );
       }
