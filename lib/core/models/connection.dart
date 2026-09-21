@@ -135,7 +135,10 @@ class SavedConnection {
     return NormalizedConnectionHost(
       host: uri.host,
       port: normalizedPort,
-      useHttps: detectedHttps || (uri.scheme == 'https'),
+      // Port 443 implies HTTPS even when the user typed a bare host: building
+      // http://host:443 can never succeed against a real TLS listener.
+      useHttps:
+          detectedHttps || (uri.scheme == 'https') || normalizedPort == 443,
     );
   }
 
