@@ -1033,53 +1033,87 @@ class _AddDialogState extends State<_AddDialog> {
         label: '',
         host: normalized.host,
         port: normalized.port,
-        apiKey: '',
+        apiKey: apiKey,
         useHttps: normalized.useHttps,
       ).baseUrl;
-      final client = ApiClient(
-        baseUrl: baseUrl,
-        apiKey: apiKey,
-        pathPrefix: gatewayPrefix,
-      );
-      final result = await client.checkHealth();
-      client.close();
-
-      if (!mounted) return;
-
-      if (!result.isHealthy) {
-        setState(() {
-          _error = result.userMessage(apiKeyProvided: apiKey.isNotEmpty);
-          _validating = false;
-        });
-        return;
-      }
 
       final dashPortText = _dashPort.text.trim();
       final dashUser = _dashUser.text.trim();
       final dashPass = _dashPass.text.trim();
       final desktopGatewayUrl = _desktopGatewayUrl.text.trim();
       final gatewayProfile = _gatewayProfile.text.trim();
-      if (gatewayProfile.contains('/') ||
-          gatewayProfile.contains(RegExp(r'\s'))) {
-        setState(() {
-          _error =
-              'Hermes profile must be a plain profile name such as "sol", '
-              'not a path.';
-          _validating = false;
-          _showDashboard = true;
-        });
-        return;
-      }
       final dashPort = dashPortText.isEmpty ? null : int.tryParse(dashPortText);
 
-      // If the user supplied any dashboard details, validate them before saving
-      // (parity with the Dashboard Login dialog). The gateway is already known
-      // good at this point.
-      if (dashPortText.isNotEmpty ||
+      final hasDashboardAuth =
+          dashUser.isNotEmpty && dashPass.isNotEmpty && !_dashboardProxied;
+
+      if (hasDashboardAuth) {
+        // Password-auth dashboard (primary path): validate by actually
+        // performing the /auth/password-login flow. The bearer-based health
+        // check below would fail with an empty API key on a gated gateway,
+        // so dashboard credentials take precedence when provided.
+        final dashClient = DashboardClient(
+          host: normalized.host,
+          port: SavedConnection(
+            id: '',
+            label: '',
+            host: normalized.host,
+            port: normalized.port,
+            apiKey: apiKey,
+            useHttps: normalized.useHttps,
+            dashboardPortOverride: dashPort,
+          ).dashboardPort,
+          useHttps: normalized.useHttps,
+          pathPrefix: dashboardPrefix,
+          proxied: _dashboardProxied,
+          username: dashUser,
+          password: dashPass,
+        );
+        try {
+          await dashClient.getModelInfo();
+          dashClient.close();
+        } catch (e) {
+          dashClient.close();
+          if (!mounted) return;
+          setState(() {
+            _error =
+                'Could not log in to the dashboard with the given username '
+                'and password. Check the credentials and try again.';
+            _validating = false;
+            _showDashboard = true;
+          });
+          return;
+        }
+      } else {
+        // API-key (bearer) path — optional when dashboard auth is used.
+        final client = ApiClient(
+          baseUrl: baseUrl,
+          apiKey: apiKey,
+          pathPrefix: gatewayPrefix,
+        );
+        final result = await client.checkHealth();
+        client.close();
+
+        if (!mounted) return;
+
+        if (!result.isHealthy) {
+          setState(() {
+            _error = result.userMessage(apiKeyProvided: apiKey.isNotEmpty);
+            _validating = false;
+          });
+          return;
+        }
+      }
+
+      // Dashboard credentials (if any) were already validated end-to-end via
+      // the password-login flow above; only validate the remaining
+      // dashboard-only detail combinations here.
+      if (!hasDashboardAuth &&
+          (dashPortText.isNotEmpty ||
           dashUser.isNotEmpty ||
           dashPass.isNotEmpty ||
           dashboardPrefix.isNotEmpty ||
-          _dashboardProxied) {
+          _dashboardProxied)) {
         final dashClient = DashboardClient(
           host: normalized.host,
           port: SavedConnection(
