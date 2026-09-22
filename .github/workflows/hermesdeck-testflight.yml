@@ -49,7 +49,7 @@ jobs:
       - name: Select build number
         env:
           BUNDLE_ID: com.jahmedia.hermesdeck
-          MARKETING_VERSION: 1.0.0
+          MARKETING_VERSION: 2.1.3
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
           APP_STORE_CONNECT_KEY_PATH: ${{ github.workspace }}/AuthKey.p8
