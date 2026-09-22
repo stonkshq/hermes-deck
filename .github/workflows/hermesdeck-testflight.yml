@@ -52,7 +52,7 @@ jobs:
           MARKETING_VERSION: 2.1.3
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          APP_STORE_CONNECT_KEY_PATH: ${{ github.workspace }}/AuthKey.p8
+          APP_STORE_CONNECT_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
         run: |
           BUILD_NUMBER=$(ruby ci/select_testflight_build_number.rb)
           echo "BUILD_NUMBER=${BUILD_NUMBER}" >> "${GITHUB_ENV}"
@@ -96,5 +96,5 @@ jobs:
           BETA_GROUP_NAME: Internal Testers
           APP_STORE_CONNECT_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
-          APP_STORE_CONNECT_KEY_PATH: ${{ github.workspace }}/AuthKey.p8
+          APP_STORE_CONNECT_KEY_PATH: ${{ runner.temp }}/AuthKey.p8
         run: ruby ci/attach_testflight_build.rb || echo "attach failed — attach manually via ASC"
