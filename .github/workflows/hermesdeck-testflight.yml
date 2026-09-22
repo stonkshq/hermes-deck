@@ -77,7 +77,10 @@ jobs:
         run: |
           flutter build ipa --release \
             --build-number "$BUILD_NUMBER" \
-            --export-options-plist=ci/HermesDeckExportOptions.plist
+            --export-options-plist=ci/HermesDeckExportOptions.plist \
+            2>&1 | tee build_log.txt
+        # Xcode on the runner has no Apple account; force manual signing to the
+        # installed keychain cert + profile via xcodebuild args
 
       - name: Upload .ipa to TestFlight
         run: |
