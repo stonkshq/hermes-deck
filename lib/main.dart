@@ -962,7 +962,7 @@ class _AddDialogState extends State<_AddDialog> {
   late final TextEditingController _dashPass;
   late final TextEditingController _desktopGatewayUrl;
   late final TextEditingController _gatewayProfile;
-  late bool _showDashboard;
+  late bool _showAdvanced;
   late bool _dashboardProxied;
   bool _validating = false;
   String? _error;
@@ -1000,7 +1000,7 @@ class _AddDialogState extends State<_AddDialog> {
     );
     _gatewayProfile = TextEditingController(text: conn?.gatewayProfile ?? '');
     _dashboardProxied = conn?.dashboardProxied ?? false;
-    _showDashboard =
+    _showAdvanced =
         conn?.gatewayPrefix?.isNotEmpty == true ||
         conn?.gatewayProfile?.isNotEmpty == true ||
         conn?.dashboardPrefix?.isNotEmpty == true ||
@@ -1012,14 +1012,18 @@ class _AddDialogState extends State<_AddDialog> {
   }
 
   Future<void> _validateAndSave() async {
-    final label = _label.text.trim();
     final host = _host.text.trim();
-    final port = int.tryParse(_port.text.trim()) ?? 8642;
+    // Label is now an advanced field: default it from the host so the 3-field
+    // quick path (url + username + password) never fails validation.
+    final label = _label.text.trim().isNotEmpty
+        ? _label.text.trim()
+        : (host.isEmpty ? 'Home' : host);
+    final port = int.tryParse(_port.text.trim()) ?? (host.contains('https://') ? 443 : 8642);
     final apiKey = _apiKey.text.trim();
     final gatewayPrefix = _gatewayPrefix.text.trim();
     final dashboardPrefix = _dashboardPrefix.text.trim();
 
-    if (label.isEmpty || host.isEmpty || port <= 0) return;
+    if (host.isEmpty || port <= 0) return;
 
     setState(() {
       _validating = true;
@@ -1080,7 +1084,8 @@ class _AddDialogState extends State<_AddDialog> {
                 'Could not log in to the dashboard with the given username '
                 'and password. Check the credentials and try again.';
             _validating = false;
-            _showDashboard = true;
+            _showAdvanced = true;
+            _showAdvanced = true;
           });
           return;
         }
@@ -1141,7 +1146,8 @@ class _AddDialogState extends State<_AddDialog> {
                 'Gateway connected, but the dashboard could not be reached or '
                 'authenticated. Check the dashboard details, or clear them to skip.';
             _validating = false;
-            _showDashboard = true;
+            _showAdvanced = true;
+            _showAdvanced = true;
           });
           return;
         }
@@ -1218,62 +1224,90 @@ class _AddDialogState extends State<_AddDialog> {
               ),
             ],
             TextField(
-              controller: _label,
-              decoration: const InputDecoration(labelText: 'Label'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
               controller: _host,
               decoration: const InputDecoration(
-                labelText: 'Host',
-                hintText:
-                    '192.168.1.50, 100.x.y.z, or hermes-machine.tailnet.ts.net',
+                labelText: 'Url',
+                hintText: 'https://god.phuk.ai',
               ),
-              keyboardType: TextInputType.text,
+              keyboardType: TextInputType.url,
+              autocorrect: false,
+            ),
+            const SizedBox(height: 12),
+            // Username/password is the primary auth path: the dialog
+            // validates through the real dashboard login when these are set.
+            TextField(
+              controller: _dashUser,
+              decoration: const InputDecoration(
+                labelText: 'Username',
+              ),
               autocorrect: false,
             ),
             const SizedBox(height: 12),
             TextField(
-              controller: _port,
+              controller: _dashPass,
               decoration: const InputDecoration(
-                labelText: 'Port',
-                hintText: '8642 (API Server)',
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _apiKey,
-              decoration: const InputDecoration(
-                labelText: 'API Key',
-                hintText: 'API_SERVER_KEY from ~/.hermes/.env',
+                labelText: 'Password',
               ),
               obscureText: true,
+              autocorrect: false,
             ),
             const SizedBox(height: 4),
             InkWell(
               onTap: _validating
                   ? null
-                  : () => setState(() => _showDashboard = !_showDashboard),
+                  : () => setState(() => _showAdvanced = !_showAdvanced),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Row(
                   children: [
                     Icon(
-                      _showDashboard ? Icons.expand_less : Icons.expand_more,
+                      _showAdvanced ? Icons.expand_less : Icons.expand_more,
                       size: 20,
                       color: Colors.grey[500],
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      'Custom proxy and dashboard details',
+                      'Advanced',
                       style: TextStyle(color: Colors.grey[500], fontSize: 13),
                     ),
                   ],
                 ),
               ),
             ),
-            if (_showDashboard) ...[
+            if (_showAdvanced) ...[
+              const SizedBox(height: 8),
+              TextField(
+                controller: _label,
+                decoration: const InputDecoration(labelText: 'Label'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _port,
+                decoration: const InputDecoration(
+                  labelText: 'Port',
+                  hintText: '443 for https:// URLs, else 8642',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _apiKey,
+                decoration: const InputDecoration(
+                  labelText: 'API Key (optional)',
+                  hintText: 'Bearer token for the API server',
+                ),
+                obscureText: true,
+              ),
+              const SizedBox(height: 12),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  'Proxy and dashboard details',
+                  style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                ),
+              ),
+            ],
+            if (_showAdvanced) ...[
               const SizedBox(height: 8),
               TextField(
                 controller: _gatewayPrefix,
@@ -1318,22 +1352,6 @@ class _AddDialogState extends State<_AddDialog> {
                   hintText: 'Leave blank for default (9119)',
                 ),
                 keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _dashUser,
-                decoration: const InputDecoration(
-                  labelText: 'Dashboard Username (optional)',
-                ),
-                autocorrect: false,
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _dashPass,
-                decoration: const InputDecoration(
-                  labelText: 'Dashboard Password (optional)',
-                ),
-                obscureText: true,
               ),
               const SizedBox(height: 12),
               TextField(

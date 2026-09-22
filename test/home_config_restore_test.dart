@@ -313,7 +313,7 @@ void main() {
     await tester.tap(find.byTooltip('Add Connection'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Custom proxy and dashboard details'));
+    await tester.tap(find.text('Advanced'));
     await tester.pumpAndSettle();
 
     final field = find.widgetWithText(
