@@ -1227,7 +1227,7 @@ class _AddDialogState extends State<_AddDialog> {
               controller: _host,
               decoration: const InputDecoration(
                 labelText: 'Url',
-                hintText: 'https://god.phuk.ai',
+                hintText: 'https://hermes.example.com',
               ),
               keyboardType: TextInputType.url,
               autocorrect: false,
