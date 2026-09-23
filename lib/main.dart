@@ -1081,7 +1081,6 @@ class _AddDialogState extends State<_AddDialog> {
                 'Could not log in to the dashboard with the given username '
                 'and password. Check the credentials and try again.';
             _validating = false;
-            _showAdvanced = true;
           });
           return;
         }
