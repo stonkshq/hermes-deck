@@ -953,7 +953,6 @@ class _AddDialog extends StatefulWidget {
 class _AddDialogState extends State<_AddDialog> {
   late final TextEditingController _label;
   late final TextEditingController _host;
-  late final TextEditingController _port;
   late final TextEditingController _apiKey;
   late final TextEditingController _gatewayPrefix;
   late final TextEditingController _dashboardPrefix;
@@ -981,7 +980,6 @@ class _AddDialogState extends State<_AddDialog> {
           ? 'https://${conn.host}'
           : conn.host,
     );
-    _port = TextEditingController(text: (conn?.port ?? 8642).toString());
     _apiKey = TextEditingController(text: conn?.apiKey ?? '');
     _gatewayPrefix = TextEditingController(text: conn?.gatewayPrefix ?? '');
     _dashboardPrefix = TextEditingController(text: conn?.dashboardPrefix ?? '');
@@ -1018,12 +1016,11 @@ class _AddDialogState extends State<_AddDialog> {
     final label = _label.text.trim().isNotEmpty
         ? _label.text.trim()
         : (host.isEmpty ? 'Home' : host);
-    final port = int.tryParse(_port.text.trim()) ?? (host.contains('https://') ? 443 : 8642);
     final apiKey = _apiKey.text.trim();
     final gatewayPrefix = _gatewayPrefix.text.trim();
     final dashboardPrefix = _dashboardPrefix.text.trim();
 
-    if (host.isEmpty || port <= 0) return;
+    if (host.isEmpty) return;
 
     setState(() {
       _validating = true;
@@ -1031,7 +1028,7 @@ class _AddDialogState extends State<_AddDialog> {
     });
 
     try {
-      final normalized = SavedConnection.normalizeHostAndPort(host, port);
+      final normalized = SavedConnection.normalizeHostAndPort(host, 8642);
       final baseUrl = SavedConnection(
         id: '',
         label: '',
@@ -1084,7 +1081,6 @@ class _AddDialogState extends State<_AddDialog> {
                 'Could not log in to the dashboard with the given username '
                 'and password. Check the credentials and try again.';
             _validating = false;
-            _showAdvanced = true;
             _showAdvanced = true;
           });
           return;
@@ -1147,7 +1143,6 @@ class _AddDialogState extends State<_AddDialog> {
                 'authenticated. Check the dashboard details, or clear them to skip.';
             _validating = false;
             _showAdvanced = true;
-            _showAdvanced = true;
           });
           return;
         }
@@ -1158,7 +1153,7 @@ class _AddDialogState extends State<_AddDialog> {
       await widget.onSave(
         label,
         host,
-        port,
+        normalized.port,
         apiKey,
         gatewayPrefix: gatewayPrefix,
         dashboardPrefix: dashboardPrefix,
@@ -1179,7 +1174,7 @@ class _AddDialogState extends State<_AddDialog> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _error = 'Cannot reach $host:$port. Check the host and port.';
+        _error = 'Cannot reach $host. Check the URL and try again.';
         _validating = false;
       });
     }
@@ -1279,15 +1274,6 @@ class _AddDialogState extends State<_AddDialog> {
               TextField(
                 controller: _label,
                 decoration: const InputDecoration(labelText: 'Label'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _port,
-                decoration: const InputDecoration(
-                  labelText: 'Port',
-                  hintText: '443 for https:// URLs, else 8642',
-                ),
-                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
               TextField(
@@ -1409,7 +1395,6 @@ class _AddDialogState extends State<_AddDialog> {
   void dispose() {
     _label.dispose();
     _host.dispose();
-    _port.dispose();
     _apiKey.dispose();
     _gatewayPrefix.dispose();
     _dashboardPrefix.dispose();

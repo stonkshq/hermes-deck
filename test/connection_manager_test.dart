@@ -192,14 +192,14 @@ Future<void> _expectFailClosedPromptDisconnect(
 
 void main() {
   group('SavedConnection', () {
-    test('normalizes bare HTTP gateway hosts with fallback port', () {
+    test('normalizes bare HTTP hosts to port 80', () {
       final normalized = SavedConnection.normalizeHostAndPort(
         '192.168.1.50',
         8642,
       );
 
       expect(normalized.host, '192.168.1.50');
-      expect(normalized.port, 8642);
+      expect(normalized.port, 80);
       expect(normalized.useHttps, isFalse);
     });
 
@@ -214,10 +214,10 @@ void main() {
       expect(normalized.useHttps, isTrue);
     });
 
-    test('normalizes HTTPS URLs with a custom fallback port', () {
+    test('explicit port in the URL always wins', () {
       final normalized = SavedConnection.normalizeHostAndPort(
-        'https://hermes.example.com',
-        8443,
+        'https://hermes.example.com:8443',
+        8642,
       );
 
       expect(normalized.host, 'hermes.example.com');

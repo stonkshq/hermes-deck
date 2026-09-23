@@ -94,14 +94,12 @@ class SavedConnection {
     return url;
   }
 
-  /// Parses [input] as a URI and extracts host, port, and HTTPS flag.
+  /// Parses [input] as a URL and extracts host, port, and HTTPS flag.
   ///
-  /// When the user provides an explicit port inside the URL (e.g.
-  /// `https://example.com:8443`) that port is always used.
-  ///
-  /// When the URL has no explicit port, the [fallbackPort] is used.
-  /// Callers should set [fallbackPort] to the value typed by the user in the
-  /// Port field, so custom HTTPS ports (e.g. 8443) are preserved.
+  /// Behaves like a real URL: an explicit port in the URL
+  /// (`https://example.com:8443`) always wins. With no explicit port, the
+  /// scheme decides — 443 for https, 80 for http. A bare host
+  /// (`example.com`) is treated as http (→ port 80).
   static NormalizedConnectionHost normalizeHostAndPort(
     String input,
     int fallbackPort,
@@ -126,19 +124,17 @@ class SavedConnection {
       );
     }
 
-    final normalizedPort = uri.hasPort
-        ? uri.port
-        : detectedHttps && fallbackPort == 8642
-        ? 443
-        : fallbackPort;
+    // Scheme semantics: explicit port in the URL wins; otherwise the
+    // scheme's default (https → 443, http → 80).
+    final isHttps = detectedHttps || uri.scheme == 'https';
+    final normalizedPort = uri.hasPort ? uri.port : (isHttps ? 443 : 80);
 
     return NormalizedConnectionHost(
       host: uri.host,
       port: normalizedPort,
       // Port 443 implies HTTPS even when the user typed a bare host: building
       // http://host:443 can never succeed against a real TLS listener.
-      useHttps:
-          detectedHttps || (uri.scheme == 'https') || normalizedPort == 443,
+      useHttps: isHttps || normalizedPort == 443,
     );
   }
 

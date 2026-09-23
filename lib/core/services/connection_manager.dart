@@ -812,10 +812,10 @@ class ApiClient {
 
   // ── Dashboard-compatible helpers (port 9119 endpoints, may not work on API server) ──
 
-  Future<Map<String, dynamic>> getModelInfo() => apiGet('api/model/info');
-  Future<Map<String, dynamic>> getModelOptions() => apiGet('api/model/options');
+  Future<Map<String, dynamic>> getModelInfo() => apiGet('model/info');
+  Future<Map<String, dynamic>> getModelOptions() => apiGet('model/options');
   Future<List<Map<String, dynamic>>> getSkills() async {
-    final data = await apiGetList('api/skills');
+    final data = await apiGetList('skills');
     return data.whereType<Map<String, dynamic>>().toList();
   }
 
